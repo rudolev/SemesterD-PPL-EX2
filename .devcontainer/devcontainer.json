@@ -1,0 +1,22 @@
+{
+  "name": "Node 24 & Racket (Alpine)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "evzen-wybitul.magic-racket", // Racket syntax highlighting and tools
+        "mookid.bright-script" 
+      ]
+    }
+  },
+  "postCreateCommand": "npm install",
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [3000],
+
+  // Comment out the next line if you want to run as root instead
+  "remoteUser": "node"
+}
