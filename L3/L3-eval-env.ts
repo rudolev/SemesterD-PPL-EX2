@@ -5,9 +5,11 @@ import { map } from "ramda";
 import { isBoolExp, isCExp, isLitExp, isNumExp, isPrimOp, isStrExp, isVarRef,
          isAppExp, isDefineExp, isIfExp, isLetExp, isProcExp,
          Binding, VarDecl, CExp, Exp, IfExp, LetExp, ProcExp, Program,
-         parseL3Exp,  DefineExp} from "./L3-ast";
+         parseL3Exp,  DefineExp,
+         isClassExp,
+         ClassExp} from "./L3-ast";
 import { applyEnv, makeEmptyEnv, makeExtEnv, Env } from "./L3-env-env";
-import { isClosure, makeClosureEnv, Closure, Value } from "./L3-value";
+import { isClosure, makeClosureEnv, Closure, Value, makeClass } from "./L3-value";
 import { applyPrimitive } from "./evalPrimitive";
 import { allT, first, rest, isEmpty, isNonEmptyList } from "../shared/list";
 import { Result, makeOk, makeFailure, bind, mapResult } from "../shared/result";
@@ -27,6 +29,8 @@ const applicativeEval = (exp: CExp, env: Env): Result<Value> =>
     isIfExp(exp) ? evalIf(exp, env) :
     isProcExp(exp) ? evalProc(exp, env) :
     isLetExp(exp) ? evalLet(exp, env) :
+    // L31
+    isClassExp(exp) ? evalClass(exp, env):
     isAppExp(exp) ? bind(applicativeEval(exp.rator, env),
                       (proc: Value) =>
                         bind(mapResult((rand: CExp) => 
@@ -94,4 +98,11 @@ const evalLet = (exp: LetExp, env: Env): Result<Value> => {
     const vars = map((b: Binding) => b.var.var, exp.bindings);
     return bind(vals, (vals: Value[]) => 
         evalSequence(exp.body, makeExtEnv(vars, vals, env)));
+}
+
+
+// L31
+const evalClass = (exp: ClassExp, env: Env): Result<Value> => {
+    // Simply wrap the AST components into a Value type with the current env
+    return makeOk(makeClass(exp.fields, exp.methods, env));
 }
