@@ -181,7 +181,7 @@ export const parseL3SpecialForm = (op: Sexp, params: Sexp[]): Result<CExp> =>
     op === "quote" ? 
         isNonEmptyList<Sexp>(params) ? parseLitExp(first(params)) :
         makeFailure(`Bad quote exp: ${params}`) :
-    op === "class" ? isNonEmptyList<Sexp>(params) ? parseClassExp(first(params), rest(params)) :
+    op === "class" ? isNonEmptyList<Sexp>(params) ? parseClassExp(first(params), second(params)) :
         makeFailure(`Bad class exp: ${params}`) :
     makeFailure("Never");
 
@@ -239,23 +239,35 @@ const parseIfExp = (params: Sexp[]): Result<IfExp> =>
 
 
 // L31
-const parseClassExp = (fields: Sexp, methods: Sexp[]): Result<ClassExp> => {
+const parseClassExp = (fields: Sexp, methods: Sexp): Result<ClassExp> => {
+    // Parse Fields: (a b)
     if (!(isArray(fields) && allT(isString, fields))) {
         return makeFailure(`Invalid fields for ClassExp: ${format(fields)}`);
     }
     const fieldDecls = map(makeVarDecl, fields);
 
+    // Parse Methods: ((first (lambda () a)) (second (lambda () b)) (sum (lambda () (+ a b))))
     if (!isGoodBindings(methods)) {
         return makeFailure(`Invalid methods for ClassExp: ${format(methods)}`);
     }
 
-    const methodNames = map((m: Sexp) => m[0].toString(), methods);
-    const methodValuesResult = mapResult(parseL3CExp, map(second, methods));
-    
-    // 3. Combine results using mapv to handle the Result wrapper
-    return mapv(methodValuesResult, (methodValues: CExp[]) => 
-        makeClassExp(fieldDecls, zipWith(makeBinding, methodNames, methodValues))
-    );
+    const methodNames = map((m: [string, Sexp]) => m[0], methods);
+
+    // 2. Parse all bodies into a single Result
+    const methodValuesResult = mapResult(parseL3CExp, map((m: [string, Sexp]) => m[1], methods));
+
+    // 3. Use mapv to safely "unwrap" the Result and create bindings
+    const result = mapv(methodValuesResult, (vals: CExp[]) => {
+        const bindings = zipWith(makeBinding, methodNames, vals);
+        return makeClassExp(fieldDecls, bindings);
+    });
+
+    return result;
+    // const methodNames = map((m) => m[0], methods[0]);
+    // const methodValuesResult = map((m) => parseL3CExp(m[1]), methods[0])
+    // const bindings = zipWith((x, y) => makeBinding(x, y.value), methodNames, methodValuesResult);
+    // const result = makeClassExp(fieldDecls, bindings);
+    // return makeOk(result);
 };
 
 const parseProcExp = (vars: Sexp, body: Sexp[]): Result<ProcExp> =>
@@ -340,9 +352,17 @@ const unparseLetExp = (le: LetExp) : string =>
 
 // L31
 const unparseClassExp = (ce: ClassExp): string => {
+    // Unparse fields: (a b)
     const fields = map((v: VarDecl) => v.var, ce.fields).join(" ");
-    const methods = map((b: Binding) => `(${b.var.var} ${unparseL3(b.val)})`, ce.methods).join(" ");
-    return `(class (${fields}) ${methods})`;
+    
+    // Unparse methods: ((first (lambda () a)) (second (lambda () b)) ...)
+    // Each method must be wrapped in its own pair of parentheses: (name body)
+    const methods = map((b: Binding) => 
+        `(${b.var.var} ${unparseL3(b.val)})`, 
+        ce.methods
+    ).join(" ");
+    
+    return `(class (${fields}) (${methods}))`;
 };
 
 export const unparseL3 = (exp: Program | Exp): string =>
