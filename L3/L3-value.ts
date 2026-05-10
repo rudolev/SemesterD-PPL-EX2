@@ -2,7 +2,7 @@
 // Value type definition for L4
 
 import { Binding, isPrimOp, CExp, PrimOp, VarDecl, isClassExp } from './L3-ast';
-import { Env, makeEmptyEnv } from './L3-env-env';
+import { Env, makeEmptyEnv } from './L3-env-sub';
 import { append } from 'ramda';
 import { isArray, isNumber, isString } from '../shared/type-predicates';
 
@@ -65,7 +65,7 @@ export type SymbolSExp = {
     val: string;
 }
 
-export type SExpValue = number | boolean | string | PrimOp | Closure | SymbolSExp | EmptySExp | CompoundSExp | Class;
+export type SExpValue = number | boolean | string | PrimOp | Closure | SymbolSExp | EmptySExp | CompoundSExp | Class | Object;
 export const isSExp = (x: any): x is SExpValue =>
     typeof(x) === 'string' || typeof(x) === 'boolean' || typeof(x) === 'number' ||
     isSymbolSExp(x) || isCompoundSExp(x) || isEmptySExp(x) || isPrimOp(x) || isClosure(x);
@@ -110,5 +110,5 @@ export const valueToString = (val: Value): string =>
     isEmptySExp(val) ? "'()" :
     isCompoundSExp(val) ? compoundSExpToString(val) :
     isClass(val)? 'Class' :
-    isObject(val) ? "Object" :
+    isObject(val) ? 'Object' :
     val;
