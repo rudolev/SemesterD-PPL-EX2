@@ -48,7 +48,7 @@ export interface Object {
 export const makeObject = (methods: Binding[], env: Env): Object =>
     ({ tag: "ObjectValue", methods: methods, env: env });
 
-export const isObject = (x: any): x is Object => x.tag === "Object";
+export const isObject = (x: any): x is Object => x.tag === "ObjectValue";
 
 // ========================================================
 // SExp
