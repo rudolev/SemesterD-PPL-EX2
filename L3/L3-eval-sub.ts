@@ -8,7 +8,7 @@ import { isCExp, isClassExp, isLetExp, makeVarDecl, Binding, makeIfExp,
          makeNumExp, makeProcExp, makeStrExp, parseL3Exp, makeAppExp,
          makePrimOp, makeVarRef } from "./L3-ast";
 
-         import { applyEnv, makeEmptyEnv, makeEnv, Env } from "./L3-env-sub";
+import { applyEnv, makeEmptyEnv, makeEnv, Env } from "./L3-env-sub";
 import { isClosure, makeClosure, Closure, Value, makeClass, Class, Object, isClass,
      makeObject, isSymbolSExp, isObject } from "./L3-value";
 import { first, rest, isEmpty, List, isNonEmptyList } from '../shared/list';
@@ -132,14 +132,18 @@ const createMethodDispatch = (methods: Binding[], fields: string[], fieldValues:
 const applyObject = (obj: Object, args: Value[], env: Env): Result<Value> => {
     if (args.length === 0) return makeFailure("No method name provided");
     const methodName = args[0];
-    if (!isSymbolSExp(methodName)) return makeFailure("Method name must be a symbol");
+    if (!isSymbolSExp(methodName)) 
+        return makeFailure("Method name must be a symbol");
 
     // Find the method in the object's baked-in methods
     const method = obj.methods.find(m => m.var.var === methodName.val);
-    if (!method) return makeFailure(`Method not found: ${methodName.val}`);
+    if (!method) 
+        return makeFailure(`Unrecognized method: ${methodName.val}`);
 
     // The method.val is already substituted, so just eval it
-    return L3applicativeEval(method.val, env);
+    return bind(L3applicativeEval(method.val, env), (proc: Value) => 
+        L3applyProcedure(proc, args.slice(1), env)
+    );
 };
 
 // Evaluate a sequence of expressions (in a program)
