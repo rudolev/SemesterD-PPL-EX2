@@ -3,23 +3,23 @@
 import { Value } from './L3-value';
 import { Result, makeFailure, makeOk } from '../shared/result';
 
-export type Env = EmptyEnv | NonEmptyEnv;
-export type EmptyEnv = {tag: "EmptyEnv" }
-export type NonEmptyEnv = {
+export type EnvSub = EmptyEnvSub | NonEmptyEnvSub;
+export type EmptyEnvSub = {tag: "EmptyEnvSub" }
+export type NonEmptyEnvSub = {
     tag: "Env";
     var: string;
     val: Value;
-    nextEnv: Env;
+    nextEnv: EnvSub;
 }
-export const makeEmptyEnv = (): EmptyEnv => ({tag: "EmptyEnv"});
-export const makeEnv = (v: string, val: Value, env: Env): NonEmptyEnv =>
+export const makeEmptyEnvSub = (): EmptyEnvSub => ({tag: "EmptyEnvSub"});
+export const makeEnv = (v: string, val: Value, env: EnvSub): NonEmptyEnvSub =>
     ({tag: "Env", var: v, val: val, nextEnv: env});
-export const isEmptyEnv = (x: any): x is EmptyEnv => x.tag === "EmptyEnv";
-export const isNonEmptyEnv = (x: any): x is NonEmptyEnv => x.tag === "Env";
-export const isEnv = (x: any): x is Env => isEmptyEnv(x) || isNonEmptyEnv(x);
+export const isEmptyEnvSub = (x: any): x is EmptyEnvSub => x.tag === "EmptyEnvSub";
+export const isNonEmptyEnvSub = (x: any): x is NonEmptyEnvSub => x.tag === "Env";
+export const isEnv = (x: any): x is EnvSub => isEmptyEnvSub(x) || isNonEmptyEnvSub(x);
 
-export const applyEnv = (env: Env, v: string): Result<Value> =>
-    isEmptyEnv(env) ? makeFailure(`var not found: ${v}`) :
+export const applyEnv = (env: EnvSub, v: string): Result<Value> =>
+    isEmptyEnvSub(env) ? makeFailure(`var not found: ${v}`) :
     env.var === v ? makeOk(env.val) :
     applyEnv(env.nextEnv, v);
 

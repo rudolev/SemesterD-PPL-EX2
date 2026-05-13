@@ -5,10 +5,9 @@ import { isCExp, isClassExp, isLetExp, makeVarDecl, Binding, makeIfExp,
          PrimOp, ProcExp, Program, StrExp, VarDecl, ClassExp, 
          isAppExp, isBoolExp, isDefineExp, isIfExp, isLitExp, isNumExp,
          isPrimOp, isProcExp, isStrExp, isVarRef, makeBoolExp, makeLitExp, 
-         makeNumExp, makeProcExp, makeStrExp, parseL3Exp, makeAppExp,
-         makePrimOp, makeVarRef } from "./L3-ast";
+         makeNumExp, makeProcExp, makeStrExp, parseL3Exp } from "./L3-ast";
 
-import { applyEnv, makeEmptyEnv, makeEnv, Env } from "./L3-env-sub";
+import { applyEnv, makeEmptyEnvSub, makeEnv, EnvSub } from "./L3-env-sub";
 import { isClosure, makeClosure, Closure, Value, makeClass, Class, Object, isClass,
      makeObject, isSymbolSExp, isObject } from "./L3-value";
 import { first, rest, isEmpty, List, isNonEmptyList } from '../shared/list';
@@ -23,7 +22,7 @@ import { format } from "../shared/format";
 // ========================================================
 // Eval functions
 
-const L3applicativeEval = (exp: CExp, env: Env): Result<Value> =>
+const L3applicativeEval = (exp: CExp, env: EnvSub): Result<Value> =>
     isNumExp(exp) ? makeOk(exp.val) : 
     isBoolExp(exp) ? makeOk(exp.val) :
     isStrExp(exp) ? makeOk(exp.val) :
@@ -46,24 +45,25 @@ const L3applicativeEval = (exp: CExp, env: Env): Result<Value> =>
 export const isTrueValue = (x: Value): boolean =>
     ! (x === false);
 
-const evalIf = (exp: IfExp, env: Env): Result<Value> =>
+const evalIf = (exp: IfExp, env: EnvSub): Result<Value> =>
     bind(L3applicativeEval(exp.test, env), (test: Value) => 
         isTrueValue(test) ? L3applicativeEval(exp.then, env) : 
         L3applicativeEval(exp.alt, env));
 
-const evalProc = (exp: ProcExp, env: Env): Result<Closure> =>
+const evalProc = (exp: ProcExp, env: EnvSub): Result<Closure> =>
     makeOk(makeClosure(exp.args, exp.body));
 
 // L31:
-const evalClass = (exp: ClassExp, env: Env): Result<Class> =>
+const evalClass = (exp: ClassExp, env: EnvSub): Result<Class> =>
     makeOk(makeClass(exp.fields, exp.methods, env));
 
-const L3applyProcedure = (proc: Value, args: Value[], env: Env): Result<Value> =>
+const L3applyProcedure = (proc: Value, args: Value[], env: EnvSub): Result<Value> =>
     isPrimOp(proc) ? applyPrimitive(proc, args) :
     isClosure(proc) ? applyClosure(proc, args, env) :
     // L31: 
     isClass(proc) ? applyClass(proc, args, env) :
     isObject(proc) ? applyObject(proc, args, env) : 
+
     makeFailure(`Bad procedure ${format(proc)}`);
 
 // Applications are computed by substituting computed
@@ -78,7 +78,7 @@ const valueToLitExp = (v: Value): NumExp | BoolExp | StrExp | LitExp | PrimOp | 
     isClosure(v) ? makeProcExp(v.params, v.body) :
     makeLitExp(v);
 
-const applyClosure = (proc: Closure, args: Value[], env: Env): Result<Value> => {
+const applyClosure = (proc: Closure, args: Value[], env: EnvSub): Result<Value> => {
     const vars = map((v: VarDecl) => v.var, proc.params);
     const body = renameExps(proc.body);
     const litArgs : CExp[] = map(valueToLitExp, args);
@@ -87,7 +87,7 @@ const applyClosure = (proc: Closure, args: Value[], env: Env): Result<Value> => 
 }
 
 // L31: 
-const applyClass = (cls: Class, args: Value[], env: Env): Result<Value> => {
+const applyClass = (cls: Class, args: Value[], env: EnvSub): Result<Value> => {
     if (cls.fields.length !== args.length) {
         return makeFailure(`Class expected ${cls.fields.length} arguments, but got ${args.length}`);
     }
@@ -111,25 +111,7 @@ const applyClass = (cls: Class, args: Value[], env: Env): Result<Value> => {
 };
 
 // L31:
-const createMethodDispatch = (methods: Binding[], fields: string[], fieldValues: CExp[]): CExp => {
-    if (isEmpty(methods)) {
-        // Handle method-not-found (Return a failure or a specific value)
-        return makeBoolExp(false); 
-    }
-
-    const method = methods[0];
-    const restMethods = methods.slice(1);
-
-    // If (msg == 'methodName) then (substitute fields in method body) else (check rest)
-    return makeIfExp(
-        makeAppExp(makePrimOp("eq?"), [makeVarRef("msg"), makeLitExp(method.var.var)]),
-        substitute([method.val], fields, fieldValues)[0] as CExp,
-        createMethodDispatch(restMethods, fields, fieldValues)
-    );
-};
-
-// L31:
-const applyObject = (obj: Object, args: Value[], env: Env): Result<Value> => {
+const applyObject = (obj: Object, args: Value[], env: EnvSub): Result<Value> => {
     if (args.length === 0) return makeFailure("No method name provided");
     const methodName = args[0];
     if (!isSymbolSExp(methodName)) 
@@ -147,13 +129,13 @@ const applyObject = (obj: Object, args: Value[], env: Env): Result<Value> => {
 };
 
 // Evaluate a sequence of expressions (in a program)
-export const evalSequence = (seq: List<Exp>, env: Env): Result<Value> =>
+export const evalSequence = (seq: List<Exp>, env: EnvSub): Result<Value> =>
     isNonEmptyList<Exp>(seq) ? 
         isDefineExp(first(seq)) ? evalDefineExps(first(seq), rest(seq), env) :
         evalCExps(first(seq), rest(seq), env) :
     makeFailure("Empty sequence");
 
-const evalCExps = (first: Exp, rest: Exp[], env: Env): Result<Value> =>
+const evalCExps = (first: Exp, rest: Exp[], env: EnvSub): Result<Value> =>
     isCExp(first) && isEmpty(rest) ? L3applicativeEval(first, env) :
     isCExp(first) ? bind(L3applicativeEval(first, env), _ => 
                             evalSequence(rest, env)) :
@@ -162,7 +144,7 @@ const evalCExps = (first: Exp, rest: Exp[], env: Env): Result<Value> =>
 // Eval a sequence of expressions when the first exp is a Define.
 // Compute the rhs of the define, extend the env with the new binding
 // then compute the rest of the exps in the new env.
-const evalDefineExps = (def: Exp, exps: Exp[], env: Env): Result<Value> =>
+const evalDefineExps = (def: Exp, exps: Exp[], env: EnvSub): Result<Value> =>
     isDefineExp(def) ? bind(L3applicativeEval(def.val, env), 
                             (rhs: Value) => 
                                 evalSequence(exps, 
@@ -171,9 +153,9 @@ const evalDefineExps = (def: Exp, exps: Exp[], env: Env): Result<Value> =>
 
 // Main program
 export const evalL3program = (program: Program): Result<Value> =>
-    evalSequence(program.exps, makeEmptyEnv());
+    evalSequence(program.exps, makeEmptyEnvSub());
 
 export const evalParse = (s: string): Result<Value> =>
     bind(p(s), (sexp: Sexp) => 
         bind(parseL3Exp(sexp), (exp: Exp) =>
-            evalSequence([exp], makeEmptyEnv())));
+            evalSequence([exp], makeEmptyEnvSub())));

@@ -1,14 +1,15 @@
 // ========================================================
 // Value type definition for L4
 
-import { Binding, isPrimOp, CExp, PrimOp, VarDecl, isClassExp } from './L3-ast';
-import { Env, makeEmptyEnv } from './L3-env-sub';
+import { Binding, isPrimOp, CExp, PrimOp, VarDecl } from './L3-ast';
+import { EnvSub, makeEmptyEnvSub } from './L3-env-sub';
+import { EnvEnv } from './L3-env-env';
 import { append } from 'ramda';
 import { isArray, isNumber, isString } from '../shared/type-predicates';
 
 
 export type Value = SExpValue; 
-
+export type Env = EnvSub | EnvEnv;
 export type Functional = PrimOp | Closure;
 export const isFunctional = (x: any): x is Functional => isPrimOp(x) || isClosure(x);
 
@@ -22,7 +23,7 @@ export type Closure = {
     env: Env;
 }
 export const makeClosure = (params: VarDecl[], body: CExp[]): Closure =>
-    ({tag: "Closure", params: params, body: body, env : makeEmptyEnv()});
+    ({tag: "Closure", params: params, body: body, env : makeEmptyEnvSub()});
 export const makeClosureEnv = (params: VarDecl[], body: CExp[], env: Env): Closure =>
     ({tag: "Closure", params: params, body: body, env: env});
 export const isClosure = (x: any): x is Closure => x.tag === "Closure";
@@ -45,7 +46,7 @@ export interface Object {
     env: Env;
 }
 
-export const makeObject = (methods: Binding[], env: Env): Object =>
+export const makeObject = (methods: Binding[], env: EnvSub): Object =>
     ({ tag: "ObjectValue", methods: methods, env: env });
 
 export const isObject = (x: any): x is Object => x.tag === "ObjectValue";

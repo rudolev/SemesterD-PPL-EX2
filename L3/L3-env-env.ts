@@ -21,44 +21,44 @@ import { format } from '../shared/format';
 
 // ========================================================
 // Environment data type
-export type Env = EmptyEnv | ExtEnv | RecEnv;
-export type EmptyEnv = {tag: "EmptyEnv" }
-export type ExtEnv = {
+export type EnvEnv = EmptyEnvEnv | ExtEnvEnv | RecEnvEnv;
+export type EmptyEnvEnv = {tag: "EmptyEnv" }
+export type ExtEnvEnv = {
     tag: "ExtEnv";
     vars: string[];
     vals: Value[];
-    nextEnv: Env;
+    nextEnv: EnvEnv;
 }
-export type RecEnv = {
+export type RecEnvEnv = {
     tag: "RecEnv";
     vars: string[];
     vals : ProcExp[];
     //paramss: VarDecl[][];
     //bodiess: CExp[][];
-    nextEnv: Env;
+    nextEnv: EnvEnv;
 }
 
-export const makeEmptyEnv = (): EmptyEnv => ({tag: "EmptyEnv"});
-export const makeExtEnv = (vs: string[], vals: Value[], env: Env): ExtEnv =>
+export const makeEmptyEnvEnv = (): EmptyEnvEnv => ({tag: "EmptyEnv"});
+export const makeExtEnvEnv = (vs: string[], vals: Value[], env: EnvEnv): ExtEnvEnv =>
     ({tag: "ExtEnv", vars: vs, vals: vals, nextEnv: env});
 //export const makeRecEnv = (vs: string[], paramss: VarDecl[][], bodiess: CExp[][], env: Env): RecEnv =>
   //  ({tag: "RecEnv", vars: vs, paramss: paramss, bodiess: bodiess, nextEnv: env});
-  export const makeRecEnv = (vs: string[], procs : ProcExp[], env: Env): RecEnv =>
+  export const makeRecEnv = (vs: string[], procs : ProcExp[], env: EnvEnv): RecEnvEnv =>
   ({tag: "RecEnv", vars: vs, vals : procs, nextEnv: env});
 
-const isEmptyEnv = (x: any): x is EmptyEnv => x.tag === "EmptyEnv";
-const isExtEnv = (x: any): x is ExtEnv => x.tag === "ExtEnv";
-const isRecEnv = (x: any): x is RecEnv => x.tag === "RecEnv";
+const isEmptyEnv = (x: any): x is EmptyEnvEnv => x.tag === "EmptyEnv";
+const isExtEnv = (x: any): x is ExtEnvEnv => x.tag === "ExtEnv";
+const isRecEnv = (x: any): x is RecEnvEnv => x.tag === "RecEnv";
 
-export const isEnv = (x: any): x is Env => isEmptyEnv(x) || isExtEnv(x) || isRecEnv(x);
+export const isEnv = (x: any): x is EnvEnv => isEmptyEnv(x) || isExtEnv(x) || isRecEnv(x);
 
 // Apply-env
-export const applyEnv = (env: Env, v: string): Result<Value> =>
+export const applyEnv = (env: EnvEnv, v: string): Result<Value> =>
     isEmptyEnv(env) ? makeFailure(`var not found: ${v}`) :
     isExtEnv(env) ? applyExtEnv(env, v) :
     applyRecEnv(env, v);
 
-const applyExtEnv = (env: ExtEnv, v: string): Result<Value> =>
+const applyExtEnv = (env: ExtEnvEnv, v: string): Result<Value> =>
     env.vars.includes(v) ? makeOk(env.vals[env.vars.indexOf(v)]) :
     applyEnv(env.nextEnv, v);
 
@@ -68,7 +68,7 @@ const applyExtEnv = (env: ExtEnv, v: string): Result<Value> =>
       //                                        env)) :
     //applyEnv(env.nextEnv, v);
 
-const applyRecEnv = (env: RecEnv, v: string): Result<Value> =>
+const applyRecEnv = (env: RecEnvEnv, v: string): Result<Value> =>
     env.vars.includes(v) ? makeOk(makeClosureEnv(env.vals[env.vars.indexOf(v)].args,
                                               env.vals[env.vars.indexOf(v)].body,
                                               env)) :
