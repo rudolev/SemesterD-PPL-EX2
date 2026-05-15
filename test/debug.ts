@@ -24,8 +24,8 @@ let program = `
                 )
             )
             (define p34 (pair 3 4))
-            p34
+            (p34 'first)
         )`;
 
-let result = evalP2String(program);
+let result = evalP(program);
 let a = 11;

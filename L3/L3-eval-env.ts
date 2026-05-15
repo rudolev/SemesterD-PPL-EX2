@@ -116,16 +116,18 @@ const applyClass = (cls: Class, args: Value[]): Result<Value> => {
     if (cls.fields.length !== args.length) {
         return makeFailure(`Class expected ${cls.fields.length} arguments, but got ${args.length}`);
     }
+    const fieldNames = cls.fields.map(f => f.var);
 
-    const fieldNames = map((f: VarDecl) => f.var, cls.fields);
+    const objectEnv = makeExtEnvEnv(fieldNames, args, cls.env as EnvEnv);
 
-    // Return an ObjectValue instead of a Closure
-    return makeOk(makeObject(cls.methods, cls.env));
+    return makeOk(makeObject(cls.methods, objectEnv));
 };
 
 // L31:
 const applyObject = (obj: Object, args: Value[]): Result<Value> => {
-    if (args.length === 0) return makeFailure("No method name provided");
+    if (args.length === 0) 
+        return makeFailure("No method name provided");
+    
     const methodName = args[0];
     if (!isSymbolSExp(methodName)) 
         return makeFailure("Method name must be a symbol");
@@ -135,5 +137,7 @@ const applyObject = (obj: Object, args: Value[]): Result<Value> => {
     if (!method) 
         return makeFailure(`Unrecognized method: ${methodName.val}`);
 
-    return makeOk(5);
-};
+    return bind(applicativeEval(method.val, obj.env as EnvEnv), (proc: Value) => 
+            applyProcedure(proc, args.slice(1))
+        );
+}
