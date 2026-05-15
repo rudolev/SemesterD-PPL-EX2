@@ -1,20 +1,20 @@
 // L3-eval.ts
 // Evaluator with Environments model
 
-import { map } from "ramda";
+import { map, none } from "ramda";
 import { isBoolExp, isCExp, isLitExp, isNumExp, isPrimOp, isStrExp, isVarRef,
          isAppExp, isDefineExp, isIfExp, isLetExp, isProcExp,
          Binding, VarDecl, CExp, Exp, IfExp, LetExp, ProcExp, Program,
-         parseL3Exp,  DefineExp,
-         isClassExp,
-         ClassExp} from "./L3-ast";
+         parseL3Exp,  DefineExp, isClassExp, ClassExp} from "./L3-ast";
 import { applyEnv, makeEmptyEnvEnv, makeExtEnvEnv, EnvEnv } from "./L3-env-env";
-import { isClosure, makeClosureEnv, Closure, Value, makeClass } from "./L3-value";
+import { isClosure, makeClosureEnv, Closure, Value, makeClass, Class, isClass, 
+         Object, isObject, isSymbolSExp, makeObject } from "./L3-value";
 import { applyPrimitive } from "./evalPrimitive";
-import { allT, first, rest, isEmpty, isNonEmptyList } from "../shared/list";
+import { first, rest, isEmpty, isNonEmptyList } from "../shared/list";
 import { Result, makeOk, makeFailure, bind, mapResult } from "../shared/result";
 import { parse as p } from "../shared/parser";
 import { format } from "../shared/format";
+import { substitute } from "./substitute";
 
 // ========================================================
 // Eval functions
@@ -55,6 +55,10 @@ const evalProc = (exp: ProcExp, env: EnvEnv): Result<Closure> =>
 const applyProcedure = (proc: Value, args: Value[]): Result<Value> =>
     isPrimOp(proc) ? applyPrimitive(proc, args) :
     isClosure(proc) ? applyClosure(proc, args) :
+    // L31: 
+    isClass(proc) ? applyClass(proc, args) :
+    isObject(proc) ? applyObject(proc, args) : 
+
     makeFailure(`Bad procedure ${format(proc)}`);
 
 const applyClosure = (proc: Closure, args: Value[]): Result<Value> => {
@@ -101,9 +105,35 @@ const evalLet = (exp: LetExp, env: EnvEnv): Result<Value> => {
         evalSequence(exp.body, makeExtEnvEnv(vars, vals, env)));
 }
 
-
 // L31
 const evalClass = (exp: ClassExp, env: EnvEnv): Result<Value> => {
     // Simply wrap the AST components into a Value type with the current env
     return makeOk(makeClass(exp.fields, exp.methods, env));
 }
+
+// L31: 
+const applyClass = (cls: Class, args: Value[]): Result<Value> => {
+    if (cls.fields.length !== args.length) {
+        return makeFailure(`Class expected ${cls.fields.length} arguments, but got ${args.length}`);
+    }
+
+    const fieldNames = map((f: VarDecl) => f.var, cls.fields);
+
+    // Return an ObjectValue instead of a Closure
+    return makeOk(makeObject(cls.methods, cls.env));
+};
+
+// L31:
+const applyObject = (obj: Object, args: Value[]): Result<Value> => {
+    if (args.length === 0) return makeFailure("No method name provided");
+    const methodName = args[0];
+    if (!isSymbolSExp(methodName)) 
+        return makeFailure("Method name must be a symbol");
+
+    // Find the method in the object's baked-in methods
+    const method = obj.methods.find(m => m.var.var === methodName.val);
+    if (!method) 
+        return makeFailure(`Unrecognized method: ${methodName.val}`);
+
+    return makeOk(5);
+};

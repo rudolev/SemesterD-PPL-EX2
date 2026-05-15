@@ -1,4 +1,4 @@
-import {  evalL3program } from '../L3/L3-eval-sub';
+import {  evalL3program } from '../L3/L3-eval-env';
 import { SExpValue, Value, valueToString } from "../L3/L3-value";
 import { Result, bind, isOk, makeOk, makeFailure } from "../shared/result";
 import { parseL3} from "../L3/L3-ast";
@@ -24,8 +24,8 @@ let program = `
                 )
             )
             (define p34 (pair 3 4))
-            (p34 'first)
+            p34
         )`;
 
-let result = evalP(program);
+let result = evalP2String(program);
 let a = 11;

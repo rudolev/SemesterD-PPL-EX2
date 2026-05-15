@@ -46,7 +46,7 @@ export interface Object {
     env: Env;
 }
 
-export const makeObject = (methods: Binding[], env: EnvSub): Object =>
+export const makeObject = (methods: Binding[], env: Env): Object =>
     ({ tag: "ObjectValue", methods: methods, env: env });
 
 export const isObject = (x: any): x is Object => x.tag === "ObjectValue";

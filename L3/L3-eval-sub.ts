@@ -1,6 +1,6 @@
 // L3-eval.ts
 import { map } from "ramda";
-import { isCExp, isClassExp, isLetExp, makeVarDecl, Binding, makeIfExp, 
+import { isCExp, isClassExp, isLetExp, Binding, 
          BoolExp, CExp, Exp, IfExp, LitExp, NumExp,
          PrimOp, ProcExp, Program, StrExp, VarDecl, ClassExp, 
          isAppExp, isBoolExp, isDefineExp, isIfExp, isLitExp, isNumExp,
@@ -97,7 +97,7 @@ const applyClass = (cls: Class, args: Value[], env: EnvSub): Result<Value> => {
 
     // Apply substitution to each method body immediately
     // This "bakes" the field values into the methods
-    const substitutedMethods = map((method: Binding): Binding => {
+    const substitutedMethods: Binding[] = map((method: Binding): Binding => {
         const newBody = substitute([method.val], fieldNames, litArgs);
         return {
             tag: "Binding",
