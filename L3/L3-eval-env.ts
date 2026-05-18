@@ -1,7 +1,7 @@
 // L3-eval.ts
 // Evaluator with Environments model
 
-import { map, none } from "ramda";
+import { map } from "ramda";
 import { isBoolExp, isCExp, isLitExp, isNumExp, isPrimOp, isStrExp, isVarRef,
          isAppExp, isDefineExp, isIfExp, isLetExp, isProcExp,
          Binding, VarDecl, CExp, Exp, IfExp, LetExp, ProcExp, Program,
@@ -14,7 +14,6 @@ import { first, rest, isEmpty, isNonEmptyList } from "../shared/list";
 import { Result, makeOk, makeFailure, bind, mapResult } from "../shared/result";
 import { parse as p } from "../shared/parser";
 import { format } from "../shared/format";
-import { substitute } from "./substitute";
 
 // ========================================================
 // Eval functions
@@ -105,7 +104,7 @@ const evalLet = (exp: LetExp, env: EnvEnv): Result<Value> => {
         evalSequence(exp.body, makeExtEnvEnv(vars, vals, env)));
 }
 
-// L31
+// L31:
 const evalClass = (exp: ClassExp, env: EnvEnv): Result<Value> => {
     // Simply wrap the AST components into a Value type with the current env
     return makeOk(makeClass(exp.fields, exp.methods, env));
@@ -138,6 +137,5 @@ const applyObject = (obj: Object, args: Value[]): Result<Value> => {
         return makeFailure(`Unrecognized method: ${methodName.val}`);
 
     return bind(applicativeEval(method.val, obj.env as EnvEnv), (proc: Value) => 
-            applyProcedure(proc, args.slice(1))
-        );
+            applyProcedure(proc, args.slice(1)));
 }

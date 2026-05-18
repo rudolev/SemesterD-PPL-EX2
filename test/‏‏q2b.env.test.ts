@@ -141,7 +141,6 @@ it("Test unknown methods application for environment model", () => {
 });
 
 it("Test unknown field in methods application", () => {
-
     expect(evalP(`
     (L3
       (define pair 
@@ -161,7 +160,6 @@ it("Test unknown field in methods application", () => {
 });
 
 it("Test nested object methods application", () => {
-
     expect(evalP(`
     (L3
         (
@@ -179,10 +177,6 @@ it("Test nested object methods application", () => {
        )
     )
     `)).toStrictEqual(makeOk(3));
-
-
- 
 });
-
 
 });

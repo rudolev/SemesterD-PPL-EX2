@@ -181,6 +181,7 @@ export const parseL3SpecialForm = (op: Sexp, params: Sexp[]): Result<CExp> =>
     op === "quote" ? 
         isNonEmptyList<Sexp>(params) ? parseLitExp(first(params)) :
         makeFailure(`Bad quote exp: ${params}`) :
+// L31
     op === "class" ? isNonEmptyList<Sexp>(params) ? parseClassExp(first(params), second(params)) :
         makeFailure(`Bad class exp: ${params}`) :
     makeFailure("Never");
@@ -263,11 +264,6 @@ const parseClassExp = (fields: Sexp, methods: Sexp): Result<ClassExp> => {
     });
 
     return result;
-    // const methodNames = map((m) => m[0], methods[0]);
-    // const methodValuesResult = map((m) => parseL3CExp(m[1]), methods[0])
-    // const bindings = zipWith((x, y) => makeBinding(x, y.value), methodNames, methodValuesResult);
-    // const result = makeClassExp(fieldDecls, bindings);
-    // return makeOk(result);
 };
 
 const parseProcExp = (vars: Sexp, body: Sexp[]): Result<ProcExp> =>
@@ -378,5 +374,6 @@ export const unparseL3 = (exp: Program | Exp): string =>
     isLetExp(exp) ? unparseLetExp(exp) :
     isDefineExp(exp) ? `(define ${exp.var.var} ${unparseL3(exp.val)})` :
     isProgram(exp) ? `(L3 ${unparseLExps(exp.exps)})` :
+// L31    
     isClassExp(exp) ? unparseClassExp(exp):
     exp;

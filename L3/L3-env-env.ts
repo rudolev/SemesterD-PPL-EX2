@@ -14,10 +14,9 @@
 // The key operation on env is apply-env(var) which returns the value associated to var in env
 // or throw an error if var is not defined in env.
 
-import { VarDecl, CExp, ProcExp } from './L3-ast';
+import { ProcExp } from './L3-ast';
 import { makeClosureEnv, Value } from './L3-value';
 import { Result, makeOk, makeFailure } from '../shared/result';
-import { format } from '../shared/format';
 
 // ========================================================
 // Environment data type

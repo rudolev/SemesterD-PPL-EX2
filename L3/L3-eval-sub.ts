@@ -7,7 +7,7 @@ import { isCExp, isClassExp, isLetExp, Binding,
          isPrimOp, isProcExp, isStrExp, isVarRef, makeBoolExp, makeLitExp, 
          makeNumExp, makeProcExp, makeStrExp, parseL3Exp } from "./L3-ast";
 
-import { applyEnv, makeEmptyEnvSub, makeEnv, EnvSub } from "./L3-env-sub";
+import { applyEnv, makeEmptyEnvSub, makeEnvSub, EnvSub } from "./L3-env-sub";
 import { isClosure, makeClosure, Closure, Value, makeClass, Class, Object, isClass,
      makeObject, isSymbolSExp, isObject } from "./L3-value";
 import { first, rest, isEmpty, List, isNonEmptyList } from '../shared/list';
@@ -148,7 +148,7 @@ const evalDefineExps = (def: Exp, exps: Exp[], env: EnvSub): Result<Value> =>
     isDefineExp(def) ? bind(L3applicativeEval(def.val, env), 
                             (rhs: Value) => 
                                 evalSequence(exps, 
-                                    makeEnv(def.var.var, rhs, env))) :
+                                    makeEnvSub(def.var.var, rhs, env))) :
     makeFailure(`Unexpected in evalDefine: ${format(def)}`);
 
 // Main program

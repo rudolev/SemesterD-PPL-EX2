@@ -12,7 +12,7 @@ export type NonEmptyEnvSub = {
     nextEnv: EnvSub;
 }
 export const makeEmptyEnvSub = (): EmptyEnvSub => ({tag: "EmptyEnvSub"});
-export const makeEnv = (v: string, val: Value, env: EnvSub): NonEmptyEnvSub =>
+export const makeEnvSub = (v: string, val: Value, env: EnvSub): NonEmptyEnvSub =>
     ({tag: "Env", var: v, val: val, nextEnv: env});
 export const isEmptyEnvSub = (x: any): x is EmptyEnvSub => x.tag === "EmptyEnvSub";
 export const isNonEmptyEnvSub = (x: any): x is NonEmptyEnvSub => x.tag === "Env";

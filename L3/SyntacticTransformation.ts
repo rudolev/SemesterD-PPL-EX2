@@ -48,7 +48,6 @@ Purpose: Transform all class forms in the given AST to procs
 Signature: transform(AST)
 Type: [Exp | Program] => Result<Exp | Program>
 */
-
 export const transform = (exp: Exp | Program): Result<Exp | Program> =>
     isProgram(exp) ? bind(
                         // Force the mapResult to treat the result as Exp[]
