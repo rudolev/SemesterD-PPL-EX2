@@ -11,36 +11,43 @@ import { makeSymbolSExp } from "./L3-value";
 import { Result, makeOk, mapResult, bind } from "../shared/result";
 
 /*
+Purpose: Create a nested if given a list of methods.
+Signature: class2proc(classExp)
+Type: ClassExp => ProcExp
+*/
+const createNestedIf = (methods: Binding[]): CExp => {
+    if (methods.length === 0) {
+        return makeLitExp(makeSymbolSExp("error"));
+    }
+    
+    const currentMethod = methods[0];
+    const restMethods = methods.slice(1);
+    const currentMethodValue = currentMethod.val;
+    const methodBody = isProcExp(currentMethodValue) ? currentMethodValue.body[0] : currentMethodValue;
+
+    return makeIfExp(
+        makeAppExp(makePrimOp("eq?"), 
+        [
+            makeVarRef("msg"),
+            makeLitExp(makeSymbolSExp(currentMethod.var.var))
+        ]),
+        methodBody as CExp,
+        createNestedIf(restMethods)
+    );
+};
+
+/*
 Purpose: Transform ClassExp to ProcExp
 Signature: class2proc(classExp)
 Type: ClassExp => ProcExp
 */
 export const class2proc = (exp: ClassExp): ProcExp => {
-    const nestedIf = (methods: Binding[]): CExp => {
-        if (methods.length === 0) {
-            return makeLitExp(makeSymbolSExp("error"));
-        }
-        const currentMethod = methods[0];
-        const restMethods = methods.slice(1);
-
-        // Check if the method value is a ProcExp (lambda)
-        // If it is, we take the FIRST expression from its body
-        const methodValue = currentMethod.val;
-        const methodBody = isProcExp(methodValue) ? methodValue.body[0] : methodValue;
-
-        return makeIfExp(
-            makeAppExp(makePrimOp("eq?"), [
-                makeVarRef("msg"),
-                makeLitExp(makeSymbolSExp(currentMethod.var.var))
-            ]),
-            methodBody as CExp, // Use the body directly, don't wrap it in an application
-            nestedIf(restMethods)
-        );
-    };
-
-    return makeProcExp(exp.fields, [
-        makeProcExp([makeVarDecl("msg")], [nestedIf(exp.methods)])
-    ]);
+    return makeProcExp(exp.fields, 
+        [
+            makeProcExp([makeVarDecl("msg")], 
+            [createNestedIf(exp.methods)])
+        ]
+    );
 };
 
 /*
@@ -48,14 +55,36 @@ Purpose: Transform all class forms in the given AST to procs
 Signature: transform(AST)
 Type: [Exp | Program] => Result<Exp | Program>
 */
-export const transform = (exp: Exp | Program): Result<Exp | Program> =>
-    isProgram(exp) ? bind(
-                        // Force the mapResult to treat the result as Exp[]
-                        mapResult((e: Exp) => bind(transform(e), (res: Exp | Program) => makeOk(res as Exp)), exp.exps), 
-                        (exps: Exp[]) => makeOk(makeProgram(exps))
-                     ) :
-    isDefineExp(exp) ? bind(transformCExp(exp.val), (val: CExp) => makeOk(makeDefineExp(exp.var, val))) :
-    transformCExp(exp);
+export const transform = (exp: Exp | Program): Result<Exp | Program> =>{
+    if (isProgram(exp)) {
+        return transformProgram(exp);
+    }
+
+    if (isDefineExp(exp)) {
+        return bind(transformCExp(exp.val), (val: CExp) => 
+            makeOk(makeDefineExp(exp.var, val))
+        );
+    }
+
+    return transformCExp(exp);
+};
+
+/*
+Purpose: Transform all class forms within a Program's expressions to procs
+Signature: transformProgram(program)
+Type: [Program] => Result<Program>
+*/
+const transformProgram = (program: Program): Result<Program> => {
+    const transformedExpsResult = mapResult((e: Exp) => {
+        return bind(transform(e), (res: Exp | Program) => 
+            makeOk(res as Exp)
+        );
+    }, program.exps);
+
+    return bind(transformedExpsResult, (exps: Exp[]) => 
+        makeOk(makeProgram(exps))
+    );
+};
 
 /*
 Purpose: Recursive helper for Core Expressions

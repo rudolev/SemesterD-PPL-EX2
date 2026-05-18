@@ -106,21 +106,20 @@ const evalLet = (exp: LetExp, env: EnvEnv): Result<Value> => {
 
 // L31:
 const evalClass = (exp: ClassExp, env: EnvEnv): Result<Value> => {
-    // Simply wrap the AST components into a Value type with the current env
     return makeOk(makeClass(exp.fields, exp.methods, env));
 }
 
 // L31: 
-const applyClass = (cls: Class, args: Value[]): Result<Value> => {
-    if (cls.fields.length !== args.length) {
-        return makeFailure(`Class expected ${cls.fields.length} arguments, but got ${args.length}`);
-    }
-    const fieldNames = cls.fields.map(f => f.var);
+    const applyClass = (cls: Class, args: Value[]): Result<Value> => {
+        if (cls.fields.length !== args.length) {
+            return makeFailure(`Class expected ${cls.fields.length} arguments, but got ${args.length}`);
+        }
+        const fieldNames = cls.fields.map(f => f.var);
 
-    const objectEnv = makeExtEnvEnv(fieldNames, args, cls.env as EnvEnv);
+        const objectEnv = makeExtEnvEnv(fieldNames, args, cls.env as EnvEnv);
 
-    return makeOk(makeObject(cls.methods, objectEnv));
-};
+        return makeOk(makeObject(cls.methods, objectEnv));
+    };
 
 // L31:
 const applyObject = (obj: Object, args: Value[]): Result<Value> => {
@@ -131,11 +130,11 @@ const applyObject = (obj: Object, args: Value[]): Result<Value> => {
     if (!isSymbolSExp(methodName)) 
         return makeFailure("Method name must be a symbol");
 
-    // Find the method in the object's baked-in methods
     const method = obj.methods.find(m => m.var.var === methodName.val);
     if (!method) 
         return makeFailure(`Unrecognized method: ${methodName.val}`);
 
-    return bind(applicativeEval(method.val, obj.env as EnvEnv), (proc: Value) => 
-            applyProcedure(proc, args.slice(1)));
+    const applyLambda = (proc: Value) => applyProcedure(proc, args.slice(1));
+    
+    return bind(applicativeEval(method.val, obj.env as EnvEnv), applyLambda);
 }

@@ -1,6 +1,6 @@
 import { 
     Exp, Program, isProgram, isBoolExp, isNumExp, isStrExp, isVarRef, 
-    isPrimOp, isDefineExp, isIfExp, isAppExp, isProcExp, CExp, isVarDecl 
+    isPrimOp, isDefineExp, isIfExp, isAppExp, isProcExp
 } from './L3/L3-ast';
 import { Result, makeOk, makeFailure, bind, mapResult } from './shared/result';
 
@@ -18,10 +18,14 @@ export const l2ToPython = (exp: Exp | Program): Result<string> => {
         return bind(l2ToPython(exp.val), (val: string) => 
             makeOk(`${exp.var.var} = ${val}`));
     }
-    if (isNumExp(exp)) return makeOk(exp.val.toString());
-    if (isBoolExp(exp)) return makeOk(exp.val ? "True" : "False");
-    if (isStrExp(exp)) return makeOk(`"${exp.val}"`);
-    if (isVarRef(exp)) return makeOk(exp.var);
+    if (isNumExp(exp)) 
+        return makeOk(exp.val.toString());
+    if (isBoolExp(exp)) 
+        return makeOk(exp.val ? "True" : "False");
+    if (isStrExp(exp)) 
+        return makeOk(`"${exp.val}"`);
+    if (isVarRef(exp)) 
+        return makeOk(exp.var);
     
     if (isPrimOp(exp)) {
         const opMap: Record<string, string> = { "=": "==", "and": "and", "or": "or", "not": "not" };
@@ -47,17 +51,14 @@ export const l2ToPython = (exp: Exp | Program): Result<string> => {
             bind(mapResult(l2ToPython, exp.rands), (rands: string[]) => {
                 if (isPrimOp(exp.rator)) {
                     const op = exp.rator.op;
-                    // Handle 'not' as a special unary operator with space
                     if (op === "not") {
                         return makeOk(`(not ${rands[0]})`);
                     }
-                    // Handle infix binary/multi-operand operators
                     if (["+", "-", "*", "/", ">", "<", "=", "and", "or"].includes(op)) {
                         const pythonOp = op === "=" ? "==" : op;
                         return makeOk(`(${rands.join(` ${pythonOp} `)})`);
                     }
                 }
-                // Regular function application: f(x,y)
                 return makeOk(`${rator}(${rands.join(",")})`);
             }));
     }

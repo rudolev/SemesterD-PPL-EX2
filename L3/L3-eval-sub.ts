@@ -95,37 +95,37 @@ const applyClass = (cls: Class, args: Value[], env: EnvSub): Result<Value> => {
     const fieldNames = map((f: VarDecl) => f.var, cls.fields);
     const litArgs = map(valueToLitExp, args);
 
-    // Apply substitution to each method body immediately
-    // This "bakes" the field values into the methods
-    const substitutedMethods: Binding[] = map((method: Binding): Binding => {
-        const newBody = substitute([method.val], fieldNames, litArgs);
+    const substituteBinding = (method: Binding): Binding => {
+        const newFunctionBody = substitute([method.val], fieldNames, litArgs);
         return {
             tag: "Binding",
             var: method.var,
-            val: newBody[0] as CExp // The substituted method body
+            val: newFunctionBody[0] as CExp
         };
-    }, cls.methods);
+    };
 
-    // Return an ObjectValue instead of a Closure
+    const substitutedMethods: Binding[] = cls.methods.map(substituteBinding);
+
     return makeOk(makeObject(substitutedMethods, env));
 };
 
 // L31:
 const applyObject = (obj: Object, args: Value[], env: EnvSub): Result<Value> => {
-    if (args.length === 0) return makeFailure("No method name provided");
+    if (args.length === 0) 
+        return makeFailure("No method name provided");
+    
     const methodName = args[0];
     if (!isSymbolSExp(methodName)) 
         return makeFailure("Method name must be a symbol");
 
-    // Find the method in the object's baked-in methods
     const method = obj.methods.find(m => m.var.var === methodName.val);
     if (!method) 
         return makeFailure(`Unrecognized method: ${methodName.val}`);
 
+    const applyProcedureLambda = (proc: Value) => L3applyProcedure(proc, args.slice(1), env);
+    
     // The method.val is already substituted, so just eval it
-    return bind(L3applicativeEval(method.val, env), (proc: Value) => 
-        L3applyProcedure(proc, args.slice(1), env)
-    );
+    return bind(L3applicativeEval(method.val, env), applyProcedureLambda);
 };
 
 // Evaluate a sequence of expressions (in a program)
